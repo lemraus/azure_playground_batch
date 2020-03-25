@@ -120,7 +120,7 @@ if __name__ == "__main__" :
     )
 
     pool_id = 'CentraleSupelecPool'
-    job_id = f"job_armel_{random.randint(0, 1e6)}"
+    job_id = f"job_grp_2_{random.randint(0, 1e6)}"
 
     # create_pool(
     #     batch_client = batch_client,
@@ -145,7 +145,7 @@ if __name__ == "__main__" :
         common_resource_files = None
     )
     
-    task_id = f"task_armel_{random.randint(0, 1e6)}"
+    task_id = f"task_{random.randint(0, 1e6)}"
 
     cmd = "bash -c 'python3 -m scoop --hostfile $AZ_BATCH_NODE_SHARED_DIR/hostfile -vv -n 6 $AZ_BATCH_NODE_SHARED_DIR/script_parallel.py'"
 
