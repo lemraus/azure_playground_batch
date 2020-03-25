@@ -147,12 +147,6 @@ if __name__ == "__main__" :
     
     task_id = f"task_armel_{random.randint(0, 1e6)}"
 
-    # cmd = (
-    #     "bash -c \"mpirun -np 2 -host $AZ_BATCH_HOST_LIST -wdir $AZ_BATCH_NODE_SHARED_DIR 'python3 $AZ_BATCH_NODE_SHARED_DIR/script.py';"
-    #     # "python3 $AZ_BATCH_JOB_PREP_DIR/wd/demo_azure_batch/send_result_storage.py\""
-    #     "ls $AZ_BATCH_JOB_PREP_DIR; ls $AZ_BATCH_JOB_PREP_DIR/wd/demo_azure_batch\""
-    # )
-
     cmd = "bash -c 'python3 -m scoop --hostfile $AZ_BATCH_NODE_SHARED_DIR/hostfile -vv -n 6 $AZ_BATCH_NODE_SHARED_DIR/script_parallel.py'"
 
     create_task(
