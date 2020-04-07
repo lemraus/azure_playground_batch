@@ -98,12 +98,8 @@ if __name__ == "__main__" :
     credentials_batch = SharedKeyCredentials(account_name = config_resources.batch['name'], key = config_resources.batch['key'])
     batch_client = azure.batch.BatchServiceClient(credentials = credentials_batch, batch_url = config_resources.batch['url'])
 
-    cmd_start_task = (
-        "bash -c 'git clone https://github.com/Lemraus/azure_playground_init.git;"
-        "cd azure_playground_init; chmod +x install.sh; ./install.sh; cd ..;"
-        "git clone https://github.com/Lemraus/azure_playground_src.git'"
-    )
-
+    nb_nodes = 8
+    pool_id = f"grp2_{nb_nodes}_nodes_pool"
     rule_scaling = (
         '// Get pending tasks for the past 5 minutes.\n'
         '$samples = $ActiveTasks.GetSamplePercent(TimeInterval_Minute * 5);\n'
@@ -113,46 +109,53 @@ if __name__ == "__main__" :
         '// If number of pending tasks is not 0, set targetVM to pending tasks, otherwise half of current dedicated.\n'
         '$targetVMs = $tasks > 0 ? $tasks : max(0, $TargetDedicatedNodes / 2);\n'
         '// The pool size is capped. This value should be adjusted according to your use case.\n'
-        'cappedPoolSize = 5;\n'
+        f'cappedPoolSize = {nb_nodes};\n'
         '$TargetLowPriorityNodes = max(0, min($targetVMs, cappedPoolSize));\n'
         '// Set node deallocation mode - keep nodes active only until tasks finish\n'
         '$NodeDeallocationOption = taskcompletion;'
     )
-
-    pool_id = 'CentraleSupelecPool'
-    job_id = f"job_grp_2_{random.randint(0, 1e6)}"
-
     # create_pool(
     #     batch_client = batch_client,
     #     name_pool = pool_id,
-    #     number_nodes = 2,
+    #     number_nodes = nb_nodes,
     #     rule_scale_pool = rule_scaling
     # )
 
+    job_id = f"grp2_job_{random.randint(0, 1e6)}"
+    job_start_task = (
+        "bash -c 'git clone https://github.com/Lemraus/st7-project-aneo-group-2.git;"
+        "cd st7-project-aneo-group-2/init; chmod +x install.sh; ./install.sh'"
+    )
     create_job(
         batch_client = batch_client,
         name_job = job_id,
         name_pool = pool_id, 
-        cmd_prep_task = cmd_start_task
+        cmd_prep_task = job_start_task
     )
 
-    multi_instance_task_param = models.MultiInstanceSettings(
-        coordination_command_line = (
-            "bash -c 'python3 $AZ_BATCH_JOB_PREP_DIR/wd/azure_playground_init/create_host_file.py;"
-            "cp $AZ_BATCH_JOB_PREP_DIR/wd/azure_playground_src/script_parallel.py $AZ_BATCH_NODE_SHARED_DIR'"
-        ),
-        number_of_instances = 2,
-        common_resource_files = None
-    )
+    def multi_instance_task_param(n):
+        return models.MultiInstanceSettings(
+            coordination_command_line = (
+                "bash -c 'python3 $AZ_BATCH_JOB_PREP_DIR/wd/st7-project-aneo-group-2/init/create_host_file.py;"
+                "cp -r $AZ_BATCH_JOB_PREP_DIR/wd/st7-project-aneo-group-2/src $AZ_BATCH_NODE_SHARED_DIR'"
+            ),
+            number_of_instances = (n - 1) // 4 + 1,
+            common_resource_files = None
+        )
     
-    task_id = f"task_{random.randint(0, 1e6)}"
+    def task_id(n):
+        return f"task_{random.randint(0, 1e6)}_{n}"
 
-    cmd = "bash -c 'python3 -m scoop --hostfile $AZ_BATCH_NODE_SHARED_DIR/hostfile -vv -n 6 $AZ_BATCH_NODE_SHARED_DIR/script_parallel.py'"
+    def task_cmd(n):
+        return f"bash -c 'python3 -m scoop --hostfile $AZ_BATCH_NODE_SHARED_DIR/hostfile -vv -n {n} $AZ_BATCH_NODE_SHARED_DIR/src/genetic_algo.py'"
 
-    create_task(
-        batch_client = batch_client,
-        name_job = job_id,
-        cmd = cmd,
-        name_task = task_id,
-        param_multi_inst = multi_instance_task_param
-    )
+    tasks_nb_processes = [1, 2, 4, 8, 16]
+
+    for n in tasks_nb_processes:
+        create_task(
+            batch_client = batch_client,
+            name_job = job_id,
+            cmd = task_cmd(n),
+            name_task = task_id(n),
+            param_multi_inst = multi_instance_task_param(n)
+        )

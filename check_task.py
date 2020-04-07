@@ -13,6 +13,8 @@ import os
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
+if not os.path.exists(OUTPUT_DIR):
+    os.mkdir(OUTPUT_DIR)
 
 def output_tasks_by_job(batch_client):
     jobs = batch_client.job.list()
