@@ -149,7 +149,7 @@ if __name__ == "__main__" :
     def task_cmd(n):
         return f"bash -c 'python3 -m scoop --hostfile $AZ_BATCH_NODE_SHARED_DIR/hostfile -vv -n {n} $AZ_BATCH_NODE_SHARED_DIR/src/genetic_algo.py'"
 
-    tasks_nb_processes = [1, 2, 4, 8, 16]
+    tasks_nb_processes = [1, 2, 4, 8, 16, 32]
 
     for n in tasks_nb_processes:
         create_task(
